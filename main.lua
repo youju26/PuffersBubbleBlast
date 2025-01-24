@@ -1,13 +1,12 @@
+require("lib/spritesheet")
 height = 256
 width = 320
 scale = 1
 
 function love.load()
   background = love.graphics.newImage("assets/environment/background.png")
-  puffy = love.graphics.newImage("assets/puffy.png")
+  puffy = newAnimation(love.graphics.newImage("assets/puffy.png"), 200, 200, 1.0)
 
-  puffy_normal = love.graphics.newQuad(0,0,200,200,puffy)
-  puffy_bloW = love.graphics.newQuad(200,0,200,200,puffy)
   love.resize(love.graphics.getDimensions())
   is_puffy_blow = false
 end
@@ -36,9 +35,9 @@ function love.draw()
   love.graphics.draw(background, 0, 0)
   love.graphics.scale(.2)
   if is_puffy_blow then
-      love.graphics.draw(puffy, puffy_bloW)
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[1])
     else
-      love.graphics.draw(puffy, puffy_normal)
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[2])
   end
 end
 
