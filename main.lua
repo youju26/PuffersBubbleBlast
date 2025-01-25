@@ -58,7 +58,7 @@ function love.update(dt)
 end
 
 function love.mousepressed(x,y, button)
-  table.insert(bubbles, newBubble(x, y , math.atan(y / x)))
+  table.insert(bubbles, newBubble(puffy_x_static, puffy_y , puffy_angle + math.pi))
 end
 
 function love.keypressed(key, scancode, isrepeat)
