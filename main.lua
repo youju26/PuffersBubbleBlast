@@ -6,6 +6,7 @@ width = 320
 scale = 1
 puffy_x = 0
 puffy_y = 0
+puffy_x_static = 350
 
 function love.load()
   background = love.graphics.newImage("assets/environment/background.png")
@@ -38,11 +39,11 @@ function love.update(dt)
   mouse_x, mouse_y = love.mouse.getPosition()
   mouse_x = mouse_x
   mouse_y = mouse_y
-  dx = mouse_x - puffy_x
+  dx = mouse_x - puffy_x_static
   dy = mouse_y - puffy_y
+  puffy_angle = (math.atan2(dy, dx) + math.pi) % (2 * math.pi)
   if love.mouse.isDown({1,2}) then
     local speed = 100
-    puffy_angle = (math.atan2(dy, dx) + math.pi) % (2 * math.pi)
     puffy_speed_x = puffy_speed_x + math.cos(puffy_angle) * speed * dt
     puffy_speed_y = puffy_speed_y + math.sin(puffy_angle) * speed * dt
   else
@@ -87,9 +88,9 @@ function love.draw()
   love.graphics.draw(midground, midground_quad, 0, 0, 0, midground_scale, midground_scale)
   -- love.graphics.scale(.2)
   if is_puffy_blow then
-      love.graphics.draw(puffy.spriteSheet, puffy.quads[1], 600, puffy_y, puffy_angle + math.pi)
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[1], puffy_x_static, puffy_y, puffy_angle + math.pi, 1, 1, 100, 100)
     else
-      love.graphics.draw(puffy.spriteSheet, puffy.quads[2], 600, puffy_y, puffy_angle + math.pi)
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[2], puffy_x_static, puffy_y, puffy_angle + math.pi, 1, 1, 100, 100)
   end
 
   for _, bubble in ipairs(bubbles) do
