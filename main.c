@@ -4,6 +4,7 @@
 
 #define ENEMY_COUNT 8
 #define BUBBLE_COUNT 8
+#define AIR_BUBBLE_COUNT 16
 
 enum ENEMY { FISH, FISH_BIG, FISH_DART, MINE, MINE_BIG, MINE_SMALL };
 
@@ -41,6 +42,9 @@ static size_t bubble_index = 0;
 
 static enemy_t enemies[ENEMY_COUNT] = {0};
 
+static Vector2 air_bubbles[AIR_BUBBLE_COUNT] = {0};
+static size_t air_bubble_index = 0;
+
 static player_t entity_player = {.x = 350.0,
                                  .y = 200.0,
                                  .orientation = 0,
@@ -51,7 +55,7 @@ static player_t entity_player = {.x = 350.0,
                                  .hits = 0};
 
 static Texture2D texture_background, texture_midground, texture_puffy,
-    texture_bubble, texture_fish_dart;
+    texture_bubble, texture_fish_dart, texture_air_bubble;
 
 static Sound sound_ambient, sound_bubble, sound_hurt, sound_puffy_death,
     sound_fish_dying;
@@ -64,6 +68,7 @@ void InitTextures() {
   texture_puffy = LoadTexture("assets/puffy.png");
   texture_bubble = LoadTexture("assets/FX/explosion.png");
   texture_fish_dart = LoadTexture("assets/enemies/fish-dart.png");
+  texture_air_bubble = LoadTexture("assets/FX/Power_template_1.png");
 
   SetTextureWrap(texture_background, TEXTURE_WRAP_REPEAT);
   SetTextureWrap(texture_midground, TEXTURE_WRAP_REPEAT);
@@ -112,13 +117,13 @@ void UpdatePlayer(player_t *player) {
   is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
   int mouse_x = GetMouseX();
   int mouse_y = GetMouseY();
-  float speed = 500000;
+  float speed = 50000;
 
   entity_player.orientation =
       atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
   if (IsMouseButtonPressed(0)) {
     PlaySound(sound_bubble);
-    
+
     // PLAYER IMPULSE IN OPPOSITE DIRECTION
     entity_player.speed_x +=
         cosf(entity_player.orientation + PI) * speed * GetFrameTime();
@@ -154,6 +159,13 @@ void UpdateBubble(bubble_t *bubble) {
     bool collision = CheckCollisionCircles(enemy_vec, enemies[i].radius,
                                            bubble_vec, bubble->radius);
     if (collision) {
+      for (size_t ii = 0; ii < 4; ii++) {
+        air_bubble_index = (air_bubble_index + 1) % AIR_BUBBLE_COUNT;
+        air_bubbles[air_bubble_index] = (Vector2){
+            .x = enemies[i].x + GetRandomValue(-20, 20),
+            .y = enemies[i].y + GetRandomValue(-20, 20),
+        };
+      }
       enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
                              .y = GetRandomValue(0, screenHeight),
                              .orientation = GetRandomValue(0, 2 * PI),
@@ -164,6 +176,8 @@ void UpdateBubble(bubble_t *bubble) {
     }
   }
 }
+
+void UpdateAirBubble(Vector2 *bubble) { bubble->y -= GetFrameTime() * 50; }
 
 void UpdateEnemy(enemy_t *enemy) {
   Vector2 player_vec = {.x = entity_player.x + entity_player.radius,
@@ -179,6 +193,14 @@ void UpdateEnemy(enemy_t *enemy) {
       pause = true;
 
       PlaySound(sound_puffy_death);
+
+      for (size_t ii = 0; ii < 4; ii++) {
+        air_bubble_index = (air_bubble_index + 1) % AIR_BUBBLE_COUNT;
+        air_bubbles[air_bubble_index] = (Vector2){
+            .x = entity_player.x + GetRandomValue(-20, 20),
+            .y = entity_player.y + GetRandomValue(-20, 20),
+        };
+      }
     } else {
       entity_player.lives -= 1;
       enemy->onPlayer = true;
@@ -211,10 +233,6 @@ void UpdateEnemy(enemy_t *enemy) {
 }
 
 void Update() {
-  if (pause)
-    return;
-
-  UpdatePlayer(&entity_player);
 
   for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
     UpdateBubble(&bubbles[i]);
@@ -223,6 +241,15 @@ void Update() {
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     UpdateEnemy(&enemies[i]);
   }
+
+  for (size_t i = 0; i < AIR_BUBBLE_COUNT; ++i) {
+    UpdateAirBubble(&air_bubbles[i]);
+  }
+
+  if (pause)
+    return;
+
+  UpdatePlayer(&entity_player);
 
   camera.target = (Vector2){entity_player.x + 20, entity_player.y + 20};
   camera.offset = (Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2};
@@ -234,15 +261,21 @@ void Draw() {
       texture_background,
       (Rectangle){
           .x = entity_player.x / 60, .y = 0, .width = 288, .height = 256},
-      (Rectangle){.x = 0, .y = 0, .width = GetScreenWidth(), .height = GetScreenHeight() }, (Vector2){0},
-      0.f, GRAY);
+      (Rectangle){.x = 0,
+                  .y = 0,
+                  .width = GetScreenWidth(),
+                  .height = GetScreenHeight()},
+      (Vector2){0}, 0.f, GRAY);
   // MIDGROUND
   DrawTexturePro(
       texture_midground,
       (Rectangle){
           .x = entity_player.x / 10, .y = 0, .width = 960, .height = 512},
-      (Rectangle){.x = 0, .y = 0, .width = GetScreenWidth(), .height = GetScreenHeight()}, (Vector2){0},
-      0.f, GRAY);
+      (Rectangle){.x = 0,
+                  .y = 0,
+                  .width = GetScreenWidth(),
+                  .height = GetScreenHeight()},
+      (Vector2){0}, 0.f, GRAY);
 
   // STATS
   DrawText(TextFormat("Leben: %i", entity_player.lives), GetScreenWidth() / 25,
@@ -259,7 +292,7 @@ void Draw() {
   }
 
   BeginMode2D(camera);
-  // PLAYER PUFFY 
+  // PLAYER PUFFY
   DrawTexturePro(
       texture_puffy,
       (Rectangle){
@@ -285,8 +318,14 @@ void Draw() {
     DrawTexturePro(
         texture_fish_dart,
         (Rectangle){.x = 0, .y = 0, .width = 39, .height = 20},
-        (Rectangle){.x = enemy->x, .y = enemy->y, .width = 39, .height = 20},
+        (Rectangle){
+            .x = enemy->x, .y = enemy->y, .width = 39 * 2, .height = 20 * 2},
         (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
+  }
+  // ENEMIES
+  for (size_t i = 0; i < AIR_BUBBLE_COUNT; ++i) {
+    Vector2 *bubble = &air_bubbles[i];
+    DrawTextureEx(texture_air_bubble, *bubble, 0, .5, GRAY);
   }
 
   EndMode2D();
