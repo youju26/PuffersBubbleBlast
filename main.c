@@ -30,7 +30,7 @@ int main() {
     is_puffy_blow = IsKeyDown(KEY_SPACE);
     int mouse_x = GetMouseX();
     int mouse_y = GetMouseY();
-    float angle = atanf((mouse_y - 200.0) / (mouse_x - 350.0));
+    float angle = atan2f(mouse_y - 200.0, mouse_x - 350.0);
     if (IsMouseButtonPressed(0)) {
       bubble_index = (bubble_index + 1) % 8;
       bubbles[bubble_index] =
