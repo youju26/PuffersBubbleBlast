@@ -260,7 +260,7 @@ void Draw() {
   DrawTexturePro(
       texture_background,
       (Rectangle){
-          .x = entity_player.x / 60, .y = 0, .width = 288, .height = 256},
+          .x = entity_player.x / 6, .y = 0, .width = 288, .height = 256},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
@@ -270,7 +270,7 @@ void Draw() {
   DrawTexturePro(
       texture_midground,
       (Rectangle){
-          .x = entity_player.x / 10, .y = 0, .width = 960, .height = 512},
+          .x = entity_player.x, .y = 0, .width = 960, .height = 512},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
