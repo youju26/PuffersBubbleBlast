@@ -84,7 +84,7 @@ int main() {
   Sound sound_ambient = LoadSound("assets/sounds/magical_theme.ogg");
   Sound sound_bubble = LoadSound("assets/sounds/bubble_01.ogg");
   Sound sound_hurt = LoadSound("assets/sounds/FEMALE_Gruntwork_1.ogg");
-  Sound sound_puffy_death = LoadSound("assets/sounds/puffy_death2.ogg");
+  Sound sound_puffy_death = LoadSound("assets/sounds/puffy_death.ogg");
   Sound sound_fish_dying = LoadSound("assets/sounds/slime_04.ogg");
   // Sound sound_ambient = LoadSound("assets/enchanted tiki 86_0.ogg");
   PlaySound(sound_ambient);
