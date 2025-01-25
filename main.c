@@ -11,17 +11,23 @@ typedef struct {
   enum ENEMY type;
   float x, y;
   float orientation;
+  float radius;
+  bool onPlayer;
 } enemy_t;
 
 typedef struct {
   float x, y;
   float orientation;
+  float radius;
 } bubble_t;
 
 typedef struct {
   float x, y;
   float orientation;
   float speed_x, speed_y;
+  float radius;
+  int lives;
+  int hits;
 } player_t;
 
 int main() {
@@ -40,7 +46,7 @@ int main() {
   Texture2D fish_dart = LoadTexture("assets/enemies/fish-dart.png");
 
   player_t player = {
-      .x = 350.0, .y = 200.0, .orientation = 0, .speed_x = 0, .speed_y = 0};
+      .x = 350.0, .y = 200.0, .orientation = 0, .speed_x = 0, .speed_y = 0, .radius = 50, .lives = 50, .hits = 0};
 
   bubble_t bubbles[BUBBLE_COUNT] = {0};
   size_t bubble_index = 0;
@@ -50,7 +56,9 @@ int main() {
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
                            .y = GetRandomValue(0, screenHeight),
-                           .orientation = GetRandomValue(0, 2 * PI)};
+                           .orientation = GetRandomValue(0, 2 * PI),
+                           .radius = 10,
+                           .onPlayer = false};
   }
 
   int x = 0;
@@ -76,7 +84,8 @@ int main() {
       bubble_index = (bubble_index + 1) % 8;
       bubbles[bubble_index] = (bubble_t){.x = player.x - 25,
                                          .y = player.y - 50,
-                                         .orientation = player.orientation};
+                                         .orientation = player.orientation,
+                                         .radius = 30};
     } else {
       player.speed_x *= 0.998;
       player.speed_y *= 0.998;
@@ -85,12 +94,38 @@ int main() {
     player.x += player.speed_x * GetFrameTime();
     player.y += player.speed_y * GetFrameTime();
 
+    Vector2 player_vec = {player.x + player.radius, player.y + player.radius};
+
     for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
       bubbles[i].x += cosf(bubbles[i].orientation);
       bubbles[i].y += sinf(bubbles[i].orientation);
+
+      Vector2 bubble_vec = {bubbles[i].x + bubbles[i].radius, bubbles[i].y + bubbles[i].radius};
+      for (size_t j = 0; j < ENEMY_COUNT; ++j) {
+        Vector2 enemy_vec = {enemies[j].x + enemies[j].radius, enemies[j].y + enemies[j].radius};
+        bool collision = CheckCollisionCircles(enemy_vec, enemies[j].radius, bubble_vec, bubbles[i].radius);
+        if (collision) {
+          enemies[j] = (enemy_t){.x = GetRandomValue(0, screenWidth),
+                           .y = GetRandomValue(0, screenHeight),
+                           .orientation = GetRandomValue(0, 2 * PI),
+                           .radius = 10,
+                           .onPlayer = false};
+          player.hits += 1;
+        }
+      }
     }
 
     for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+      Vector2 enemy_vec = {enemies[i].x + enemies[i].radius, enemies[i].y + enemies[i].radius};
+      bool collision = CheckCollisionCircles(enemy_vec, enemies[i].radius, player_vec, player.radius);
+      if(collision & (collision != enemies[i].onPlayer)) {
+        player.lives -= 1;
+        enemies[i].onPlayer = true;
+      }
+      else {
+        enemies[i].onPlayer = collision;
+      }
+
       float speed = 50;
 
       enemies[i].orientation += GetRandomValue(-1, 1) / 180.0 * PI;
@@ -123,6 +158,9 @@ int main() {
         (Rectangle){.x = player.x / 10, .y = 0, .width = 960, .height = 512},
         (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
         0.f, GRAY);
+
+    DrawText(TextFormat("Leben: %i", player.lives), GetScreenWidth() / 25, GetScreenHeight() / 25, GetScreenHeight() / 20, WHITE);
+    DrawText(TextFormat("Treffer: %i", player.hits), GetScreenWidth() / 25, GetScreenHeight() / 10, GetScreenHeight() / 20, WHITE);
 
     BeginMode2D(camera);
     DrawTexturePro(
