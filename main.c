@@ -39,7 +39,9 @@ int main() {
   Texture2D bubble = LoadTexture("assets/FX/explosion.png");
   Texture2D fish_dart = LoadTexture("assets/enemies/fish-dart.png");
 
-  player_t player = {350.0, 200.0, 0, 0, 0};
+  player_t player = {
+      .x = 350.0, .y = 200.0, .orientation = 0, .speed_x = 0, .speed_y = 0};
+
   bubble_t bubbles[BUBBLE_COUNT] = {0};
   size_t bubble_index = 0;
 
@@ -54,21 +56,28 @@ int main() {
   int x = 0;
   bool is_puffy_blow = false;
 
+  Camera2D camera = {0};
+  camera.target = (Vector2){player.x + 20.0f, player.y + 20.0f};
+  camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
+  camera.rotation = 0.0f;
+  camera.zoom = 1.0f;
+
   while (!WindowShouldClose()) {
-    is_puffy_blow = IsKeyDown(KEY_SPACE);
+    is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
     int mouse_x = GetMouseX();
     int mouse_y = GetMouseY();
-    player.orientation = atan2f(mouse_y - player.y, mouse_x - player.x);
+    player.orientation =
+        atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
     if (IsMouseButtonPressed(0)) {
       float speed = 500000;
       player.speed_x += cosf(player.orientation + PI) * speed * GetFrameTime();
       player.speed_y += sinf(player.orientation + PI) * speed * GetFrameTime();
 
       bubble_index = (bubble_index + 1) % 8;
-      bubbles[bubble_index] =
-          (bubble_t){.x = player.x - 25, .y = player.y - 50, .orientation = player.orientation};
-    }
-    else {
+      bubbles[bubble_index] = (bubble_t){.x = player.x - 25,
+                                         .y = player.y - 50,
+                                         .orientation = player.orientation};
+    } else {
       player.speed_x *= 0.998;
       player.speed_y *= 0.998;
     }
@@ -85,18 +94,23 @@ int main() {
       float speed = 50;
 
       enemies[i].orientation += GetRandomValue(-1, 1) / 180.0 * PI;
-      float player_direction = atan2f(200 - enemies[i].y, 350 - enemies[i].x);
+      float player_direction =
+          atan2f(player.y - enemies[i].y, player.x - enemies[i].x);
 
       bool is_player_in_view =
-          fabs(fmod(player_direction - enemies[i].orientation, 2 * PI)) / PI * 180.0 <= 30.0;
+          fabs(fmod(player_direction - enemies[i].orientation, 2 * PI)) / PI *
+              180.0 <=
+          30.0;
 
       if (is_player_in_view) {
-        enemies[i].orientation = atan2f(200 - enemies[i].y, 350 - enemies[i].x);
+        enemies[i].orientation = player_direction;
         speed = 250;
       }
       enemies[i].x += cosf(enemies[i].orientation) * GetFrameTime() * speed;
       enemies[i].y += sinf(enemies[i].orientation) * GetFrameTime() * speed;
     }
+
+    camera.target = (Vector2){player.x + 20, player.y + 20};
 
     BeginDrawing();
     DrawTexturePro(
@@ -109,6 +123,8 @@ int main() {
         (Rectangle){.x = player.x / 10, .y = 0, .width = 960, .height = 512},
         (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
         0.f, GRAY);
+
+    BeginMode2D(camera);
     DrawTexturePro(
         puffy,
         (Rectangle){
@@ -131,6 +147,8 @@ int main() {
           (Rectangle){.x = enemy->x, .y = enemy->y, .width = 39, .height = 20},
           (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
     }
+
+    EndMode2D();
     EndDrawing();
     x++;
   }
