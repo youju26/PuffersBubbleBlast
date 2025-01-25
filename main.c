@@ -35,6 +35,8 @@ int main() {
   const int screenWidth = 800;
   const int screenHeight = 450;
 
+  bool pause = false;
+
   InitWindow(screenWidth, screenHeight,
              "raylib [models] example - geometric shapes");
   Texture2D background = LoadTexture("assets/environment/background.png");
@@ -46,7 +48,7 @@ int main() {
   Texture2D fish_dart = LoadTexture("assets/enemies/fish-dart.png");
 
   player_t player = {
-      .x = 350.0, .y = 200.0, .orientation = 0, .speed_x = 0, .speed_y = 0, .radius = 50, .lives = 50, .hits = 0};
+      .x = 350.0, .y = 200.0, .orientation = 0, .speed_x = 0, .speed_y = 0, .radius = 50, .lives = 5, .hits = 0};
 
   bubble_t bubbles[BUBBLE_COUNT] = {0};
   size_t bubble_index = 0;
@@ -71,6 +73,7 @@ int main() {
   camera.zoom = 1.0f;
 
   while (!WindowShouldClose()) {
+    if(!pause) {
     is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
     int mouse_x = GetMouseX();
     int mouse_y = GetMouseY();
@@ -119,8 +122,13 @@ int main() {
       Vector2 enemy_vec = {enemies[i].x + enemies[i].radius, enemies[i].y + enemies[i].radius};
       bool collision = CheckCollisionCircles(enemy_vec, enemies[i].radius, player_vec, player.radius);
       if(collision & (collision != enemies[i].onPlayer)) {
-        player.lives -= 1;
-        enemies[i].onPlayer = true;
+        if (player.lives == 0) {
+          pause = true;
+        }
+        else {
+          player.lives -= 1;
+          enemies[i].onPlayer = true;
+          }
       }
       else {
         enemies[i].onPlayer = collision;
@@ -144,6 +152,7 @@ int main() {
       enemies[i].x += cosf(enemies[i].orientation) * GetFrameTime() * speed;
       enemies[i].y += sinf(enemies[i].orientation) * GetFrameTime() * speed;
     }
+    }
 
     camera.target = (Vector2){player.x + 20, player.y + 20};
 
@@ -161,6 +170,10 @@ int main() {
 
     DrawText(TextFormat("Leben: %i", player.lives), GetScreenWidth() / 25, GetScreenHeight() / 25, GetScreenHeight() / 20, WHITE);
     DrawText(TextFormat("Treffer: %i", player.hits), GetScreenWidth() / 25, GetScreenHeight() / 10, GetScreenHeight() / 20, WHITE);
+
+    if(pause) {
+      DrawText("GAME OVER!", GetScreenWidth() / 2 - MeasureText("GAME OVER!", GetScreenHeight() / 5)/2, GetScreenHeight() / 1.5, GetScreenHeight() / 5, RED);
+    }
 
     BeginMode2D(camera);
     DrawTexturePro(
