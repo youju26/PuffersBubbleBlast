@@ -30,38 +30,56 @@ typedef struct {
   int hits;
 } player_t;
 
-int main() {
+static const int screenWidth = 800;
+static const int screenHeight = 450;
 
-  const int screenWidth = 800;
-  const int screenHeight = 450;
+static bool pause = false;
+static bool is_puffy_blow = false;
 
-  bool pause = false;
+static bubble_t bubbles[BUBBLE_COUNT] = {0};
+static size_t bubble_index = 0;
 
-  InitWindow(screenWidth, screenHeight,
-             "raylib [models] example - geometric shapes");
-  InitAudioDevice();
-  Texture2D background = LoadTexture("assets/environment/background.png");
-  SetTextureWrap(background, TEXTURE_WRAP_REPEAT);
-  Texture2D midground = LoadTexture("assets/environment/midground.png");
-  SetTextureWrap(midground, TEXTURE_WRAP_REPEAT);
-  Texture2D puffy = LoadTexture("assets/puffy.png");
-  Texture2D bubble = LoadTexture("assets/FX/explosion.png");
-  Texture2D fish_dart = LoadTexture("assets/enemies/fish-dart.png");
+static enemy_t enemies[ENEMY_COUNT] = {0};
 
-  player_t player = {.x = 350.0,
-                     .y = 200.0,
-                     .orientation = 0,
-                     .speed_x = 0,
-                     .speed_y = 0,
-                     .radius = 50,
-                     .lives = 5,
-                     .hits = 0};
+static player_t entity_player = {.x = 350.0,
+                                 .y = 200.0,
+                                 .orientation = 0,
+                                 .speed_x = 0,
+                                 .speed_y = 0,
+                                 .radius = 50,
+                                 .lives = 5,
+                                 .hits = 0};
 
-  bubble_t bubbles[BUBBLE_COUNT] = {0};
-  size_t bubble_index = 0;
+static Texture2D texture_background, texture_midground, texture_puffy,
+    texture_bubble, texture_fish_dart;
 
-  enemy_t enemies[ENEMY_COUNT] = {0};
-  size_t enemy_index = 0;
+static Sound sound_ambient, sound_bubble, sound_hurt, sound_puffy_death,
+    sound_fish_dying;
+
+static Camera2D camera = {0};
+
+void InitTextures() {
+  texture_background = LoadTexture("assets/environment/background.png");
+  texture_midground = LoadTexture("assets/environment/midground.png");
+  texture_puffy = LoadTexture("assets/puffy.png");
+  texture_bubble = LoadTexture("assets/FX/explosion.png");
+  texture_fish_dart = LoadTexture("assets/enemies/fish-dart.png");
+
+  SetTextureWrap(texture_background, TEXTURE_WRAP_REPEAT);
+  SetTextureWrap(texture_midground, TEXTURE_WRAP_REPEAT);
+}
+
+void InitSounds() {
+  while (!IsAudioDeviceReady())
+    ;
+  sound_ambient = LoadSound("assets/sounds/magical_theme.ogg");
+  sound_bubble = LoadSound("assets/sounds/bubble_01.ogg");
+  sound_hurt = LoadSound("assets/sounds/FEMALE_Gruntwork_1.ogg");
+  sound_puffy_death = LoadSound("assets/sounds/puffy_death.ogg");
+  sound_fish_dying = LoadSound("assets/sounds/slime_04.ogg");
+}
+
+void InitEnemies() {
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
                            .y = GetRandomValue(0, screenHeight),
@@ -69,174 +87,221 @@ int main() {
                            .radius = 10,
                            .onPlayer = false};
   }
+}
 
-  int x = 0;
-  bool is_puffy_blow = false;
-
-  Camera2D camera = {0};
-  camera.target = (Vector2){player.x + 20.0f, player.y + 20.0f};
+void InitCamera() {
+  camera.target = (Vector2){entity_player.x + 20.0f, entity_player.y + 20.0f};
   camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
   camera.rotation = 0.0f;
   camera.zoom = 1.0f;
+}
 
-  while (!IsAudioDeviceReady())
-    ;
-  Sound sound_ambient = LoadSound("assets/sounds/magical_theme.ogg");
-  Sound sound_bubble = LoadSound("assets/sounds/bubble_01.ogg");
-  Sound sound_hurt = LoadSound("assets/sounds/FEMALE_Gruntwork_1.ogg");
-  Sound sound_puffy_death = LoadSound("assets/sounds/puffy_death.ogg");
-  Sound sound_fish_dying = LoadSound("assets/sounds/slime_04.ogg");
-  // Sound sound_ambient = LoadSound("assets/enchanted tiki 86_0.ogg");
+void Init() {
+  InitWindow(screenWidth, screenHeight,
+             "raylib [models] example - geometric shapes");
+  InitTextures();
+  InitAudioDevice();
+  InitEnemies();
+  InitCamera();
+
+  InitSounds();
   PlaySound(sound_ambient);
+}
 
-  while (!WindowShouldClose()) {
-    if (!pause) {
-      is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
-      int mouse_x = GetMouseX();
-      int mouse_y = GetMouseY();
-      player.orientation =
-          atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
-      if (IsMouseButtonPressed(0)) {
-        PlaySound(sound_bubble);
-        float speed = 500000;
-        player.speed_x +=
-            cosf(player.orientation + PI) * speed * GetFrameTime();
-        player.speed_y +=
-            sinf(player.orientation + PI) * speed * GetFrameTime();
+void UpdatePlayer(player_t *player) {
+  is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
+  int mouse_x = GetMouseX();
+  int mouse_y = GetMouseY();
+  float speed = 500000;
 
-        bubble_index = (bubble_index + 1) % 8;
-        bubbles[bubble_index] = (bubble_t){.x = player.x - 25,
-                                           .y = player.y - 50,
-                                           .orientation = player.orientation,
-                                           .radius = 30};
-      } else {
-        player.speed_x *= 0.998;
-        player.speed_y *= 0.998;
-      }
+  entity_player.orientation =
+      atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
+  if (IsMouseButtonPressed(0)) {
+    PlaySound(sound_bubble);
+    
+    // PLAYER IMPULSE IN OPPOSITE DIRECTION
+    entity_player.speed_x +=
+        cosf(entity_player.orientation + PI) * speed * GetFrameTime();
+    entity_player.speed_y +=
+        sinf(entity_player.orientation + PI) * speed * GetFrameTime();
 
-      player.x += player.speed_x * GetFrameTime();
-      player.y += player.speed_y * GetFrameTime();
+    // SPAWN BUBBLE
+    bubble_index = (bubble_index + 1) % 8;
+    bubbles[bubble_index] = (bubble_t){.x = entity_player.x - 25,
+                                       .y = entity_player.y - 50,
+                                       .orientation = entity_player.orientation,
+                                       .radius = 30};
+  }
+  entity_player.speed_x *= 0.998;
+  entity_player.speed_y *= 0.998;
 
-      Vector2 player_vec = {player.x + player.radius, player.y + player.radius};
+  // UPDATE PLAYER POSITION
+  entity_player.x += entity_player.speed_x * GetFrameTime();
+  entity_player.y += entity_player.speed_y * GetFrameTime();
+}
 
-      for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
-        bubbles[i].x += cosf(bubbles[i].orientation);
-        bubbles[i].y += sinf(bubbles[i].orientation);
+void UpdateBubble(bubble_t *bubble) {
+  // UPDATE BUBBLE POSITION IN DIRECTION
+  bubble->x += cosf(bubble->orientation);
+  bubble->y += sinf(bubble->orientation);
 
-        Vector2 bubble_vec = {bubbles[i].x + bubbles[i].radius,
-                              bubbles[i].y + bubbles[i].radius};
-        for (size_t j = 0; j < ENEMY_COUNT; ++j) {
-          Vector2 enemy_vec = {enemies[j].x + enemies[j].radius,
-                               enemies[j].y + enemies[j].radius};
-          bool collision = CheckCollisionCircles(enemy_vec, enemies[j].radius,
-                                                 bubble_vec, bubbles[i].radius);
-          if (collision) {
-            enemies[j] = (enemy_t){.x = GetRandomValue(0, screenWidth),
-                                   .y = GetRandomValue(0, screenHeight),
-                                   .orientation = GetRandomValue(0, 2 * PI),
-                                   .radius = 10,
-                                   .onPlayer = false};
-            player.hits += 1;
-            PlaySound(sound_fish_dying);
-          }
-        }
-      }
+  Vector2 bubble_vec = {bubble->x + bubble->radius, bubble->y + bubble->radius};
 
-      for (size_t i = 0; i < ENEMY_COUNT; ++i) {
-        Vector2 enemy_vec = {enemies[i].x + enemies[i].radius,
-                             enemies[i].y + enemies[i].radius};
-        bool collision = CheckCollisionCircles(enemy_vec, enemies[i].radius,
-                                               player_vec, player.radius);
-        if (collision & (collision != enemies[i].onPlayer)) {
-          if (player.lives == 0) {
-            pause = true;
-
-            PlaySound(sound_puffy_death);
-          } else {
-            player.lives -= 1;
-            enemies[i].onPlayer = true;
-
-            PlaySound(sound_hurt);
-          }
-        } else {
-          enemies[i].onPlayer = collision;
-        }
-
-        float speed = 50;
-
-        enemies[i].orientation += GetRandomValue(-1, 1) / 180.0 * PI;
-        float player_direction =
-            atan2f(player.y - enemies[i].y, player.x - enemies[i].x);
-
-        bool is_player_in_view =
-            fabs(fmod(player_direction - enemies[i].orientation, 2 * PI)) / PI *
-                180.0 <=
-            30.0;
-
-        if (is_player_in_view) {
-          enemies[i].orientation = player_direction;
-          speed = 250;
-        }
-        enemies[i].x += cosf(enemies[i].orientation) * GetFrameTime() * speed;
-        enemies[i].y += sinf(enemies[i].orientation) * GetFrameTime() * speed;
-      }
+  // CHECK FOR COLLISIONS WITH FISH
+  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+    Vector2 enemy_vec = {enemies[i].x + enemies[i].radius,
+                         enemies[i].y + enemies[i].radius};
+    bool collision = CheckCollisionCircles(enemy_vec, enemies[i].radius,
+                                           bubble_vec, bubble->radius);
+    if (collision) {
+      enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
+                             .y = GetRandomValue(0, screenHeight),
+                             .orientation = GetRandomValue(0, 2 * PI),
+                             .radius = 10,
+                             .onPlayer = false};
+      entity_player.hits += 1;
+      PlaySound(sound_fish_dying);
     }
+  }
+}
 
-    camera.target = (Vector2){player.x + 20, player.y + 20};
+void UpdateEnemy(enemy_t *enemy) {
+  Vector2 player_vec = {.x = entity_player.x + entity_player.radius,
+                        .y = entity_player.y + entity_player.radius};
 
-    BeginDrawing();
-    DrawTexturePro(
-        background,
-        (Rectangle){.x = player.x / 60, .y = 0, .width = 288, .height = 256},
-        (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
-        0.f, GRAY);
-    DrawTexturePro(
-        midground,
-        (Rectangle){.x = player.x / 10, .y = 0, .width = 960, .height = 512},
-        (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
-        0.f, GRAY);
+  Vector2 enemy_vec = {.x = enemy->x + enemy->radius,
+                       .y = enemy->y + enemy->radius};
 
-    DrawText(TextFormat("Leben: %i", player.lives), GetScreenWidth() / 25,
-             GetScreenHeight() / 25, GetScreenHeight() / 20, WHITE);
-    DrawText(TextFormat("Treffer: %i", player.hits), GetScreenWidth() / 25,
-             GetScreenHeight() / 10, GetScreenHeight() / 20, WHITE);
+  bool collision = CheckCollisionCircles(enemy_vec, enemy->radius, player_vec,
+                                         entity_player.radius);
+  if (collision && (collision != enemy->onPlayer)) {
+    if (entity_player.lives == 0) {
+      pause = true;
 
-    if (pause) {
-      DrawText("GAME OVER!",
-               GetScreenWidth() / 2 -
-                   MeasureText("GAME OVER!", GetScreenHeight() / 5) / 2,
-               GetScreenHeight() / 1.5, GetScreenHeight() / 5, RED);
+      PlaySound(sound_puffy_death);
+    } else {
+      entity_player.lives -= 1;
+      enemy->onPlayer = true;
+
+      PlaySound(sound_hurt);
     }
-
-    BeginMode2D(camera);
-    DrawTexturePro(
-        puffy,
-        (Rectangle){
-            .x = is_puffy_blow ? 200 : 0, .y = 0, .width = 200, .height = 200},
-        (Rectangle){.x = player.x, .y = player.y, .width = 100, .height = 100},
-        (Vector2){50, 50}, player.orientation / PI * 180.0, GRAY);
-
-    for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
-      DrawTexturePro(
-          bubble, (Rectangle){.x = 0, .y = 0, .width = 60, .height = 82},
-          (Rectangle){
-              .x = bubbles[i].x, .y = bubbles[i].y, .width = 60, .height = 82},
-          (Vector2){0}, 0, GRAY);
-    }
-
-    for (size_t i = 0; i < ENEMY_COUNT; ++i) {
-      enemy_t *enemy = &enemies[i];
-      DrawTexturePro(
-          fish_dart, (Rectangle){.x = 0, .y = 0, .width = 39, .height = 20},
-          (Rectangle){.x = enemy->x, .y = enemy->y, .width = 39, .height = 20},
-          (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
-    }
-
-    EndMode2D();
-    EndDrawing();
-    x++;
+  } else {
+    enemy->onPlayer = collision;
   }
 
-  UnloadTexture(background);
+  float speed = 50;
+
+  enemy->orientation += GetRandomValue(-1, 1) / 180.0 * PI;
+  float player_direction =
+      atan2f(entity_player.y - enemy->y, entity_player.x - enemy->x);
+
+  bool is_player_in_view =
+      fabs(fmod(player_direction - enemy->orientation, 2 * PI)) / PI * 180.0 <=
+      30.0;
+
+  // CHARGE TO PLAYER IF IN VIEW
+  if (is_player_in_view) {
+    enemy->orientation = player_direction;
+    speed = 250;
+  }
+
+  // UPDATE POSITION IN DIRECTION
+  enemy->x += cosf(enemy->orientation) * GetFrameTime() * speed;
+  enemy->y += sinf(enemy->orientation) * GetFrameTime() * speed;
+}
+
+void Update() {
+  if (pause)
+    return;
+
+  UpdatePlayer(&entity_player);
+
+  for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
+    UpdateBubble(&bubbles[i]);
+  }
+
+  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+    UpdateEnemy(&enemies[i]);
+  }
+
+  camera.target = (Vector2){entity_player.x + 20, entity_player.y + 20};
+}
+
+void Draw() {
+  // BACKGROUND
+  DrawTexturePro(
+      texture_background,
+      (Rectangle){
+          .x = entity_player.x / 60, .y = 0, .width = 288, .height = 256},
+      (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
+      0.f, GRAY);
+  // MIDGROUND
+  DrawTexturePro(
+      texture_midground,
+      (Rectangle){
+          .x = entity_player.x / 10, .y = 0, .width = 960, .height = 512},
+      (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
+      0.f, GRAY);
+
+  // STATS
+  DrawText(TextFormat("Leben: %i", entity_player.lives), GetScreenWidth() / 25,
+           GetScreenHeight() / 25, GetScreenHeight() / 20, WHITE);
+  DrawText(TextFormat("Treffer: %i", entity_player.hits), GetScreenWidth() / 25,
+           GetScreenHeight() / 10, GetScreenHeight() / 20, WHITE);
+
+  // GAMEOVER
+  if (pause) {
+    DrawText("GAME OVER!",
+             GetScreenWidth() / 2 -
+                 MeasureText("GAME OVER!", GetScreenHeight() / 5) / 2,
+             GetScreenHeight() / 1.5, GetScreenHeight() / 5, RED);
+  }
+
+  BeginMode2D(camera);
+  // PLAYER PUFFY 
+  DrawTexturePro(
+      texture_puffy,
+      (Rectangle){
+          .x = is_puffy_blow ? 200 : 0, .y = 0, .width = 200, .height = 200},
+      (Rectangle){.x = entity_player.x,
+                  .y = entity_player.y,
+                  .width = 100,
+                  .height = 100},
+      (Vector2){50, 50}, entity_player.orientation / PI * 180.0, GRAY);
+
+  // BUBBLES
+  for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
+    DrawTexturePro(
+        texture_bubble, (Rectangle){.x = 0, .y = 0, .width = 60, .height = 82},
+        (Rectangle){
+            .x = bubbles[i].x, .y = bubbles[i].y, .width = 60, .height = 82},
+        (Vector2){0}, 0, GRAY);
+  }
+
+  // ENEMIES
+  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+    enemy_t *enemy = &enemies[i];
+    DrawTexturePro(
+        texture_fish_dart,
+        (Rectangle){.x = 0, .y = 0, .width = 39, .height = 20},
+        (Rectangle){.x = enemy->x, .y = enemy->y, .width = 39, .height = 20},
+        (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
+  }
+
+  EndMode2D();
+}
+
+int main() {
+  Init();
+
+  while (!WindowShouldClose()) {
+    Update();
+
+    BeginDrawing();
+    Draw();
+    EndDrawing();
+  }
+
+  UnloadTexture(texture_background);
   CloseWindow();
 }
