@@ -225,6 +225,7 @@ void Update() {
   }
 
   camera.target = (Vector2){entity_player.x + 20, entity_player.y + 20};
+  camera.offset = (Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2};
 }
 
 void Draw() {
@@ -233,14 +234,14 @@ void Draw() {
       texture_background,
       (Rectangle){
           .x = entity_player.x / 60, .y = 0, .width = 288, .height = 256},
-      (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
+      (Rectangle){.x = 0, .y = 0, .width = GetScreenWidth(), .height = GetScreenHeight() }, (Vector2){0},
       0.f, GRAY);
   // MIDGROUND
   DrawTexturePro(
       texture_midground,
       (Rectangle){
           .x = entity_player.x / 10, .y = 0, .width = 960, .height = 512},
-      (Rectangle){.x = 0, .y = 0, .width = 800, .height = 450}, (Vector2){0},
+      (Rectangle){.x = 0, .y = 0, .width = GetScreenWidth(), .height = GetScreenHeight()}, (Vector2){0},
       0.f, GRAY);
 
   // STATS
