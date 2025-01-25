@@ -3,6 +3,7 @@ height = 256
 width = 320
 scale = 1
 puffy_x = 0
+puffy_y = 0
 
 function love.load()
   background = love.graphics.newImage("assets/environment/background.png")
@@ -17,10 +18,35 @@ function love.load()
   love.window.setMode(height * aspect_ratio, height)
   love.resize(love.graphics.getDimensions())
   is_puffy_blow = false
+  puffy_x = width / 2
+  puffy_y = height / 2
+  puffy_speed_x = 0
+  puffy_speed_y = 0
+  puffy_speed = 100
+  mouse_x = 0
+  mouse_y = 0
+  puffy_angle = 0
+  dx = 0
+  dy = 0
 end
 
-function love.update()
-  puffy_x = puffy_x + 1
+function love.update(dt)
+  mouse_x, mouse_y = love.mouse.getPosition()
+  mouse_x = mouse_x
+  mouse_y = mouse_y
+  dx = mouse_x - puffy_x
+  dy = mouse_y - puffy_y
+  if love.mouse.isDown({1,2}) then
+    local speed = 100
+    puffy_angle = (math.atan2(dy, dx) + math.pi) % (2 * math.pi)
+    puffy_speed_x = puffy_speed_x + math.cos(puffy_angle) * speed * dt
+    puffy_speed_y = puffy_speed_y + math.sin(puffy_angle) * speed * dt
+  else
+      puffy_speed_x = puffy_speed_x * .99
+      puffy_speed_y = puffy_speed_y * .99
+  end
+  puffy_x = (puffy_x + puffy_speed_x * dt)
+  puffy_y = (puffy_y + puffy_speed_y * dt)
 end
 
 function love.keypressed(key, scancode, isrepeat)
@@ -49,10 +75,25 @@ function love.draw()
   love.graphics.draw(midground, midground_quad, 0, 0, 0, midground_scale, midground_scale)
   love.graphics.scale(.2)
   if is_puffy_blow then
-      love.graphics.draw(puffy.spriteSheet, puffy.quads[1])
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[1], 600, puffy_y, puffy_angle + math.pi)
     else
-      love.graphics.draw(puffy.spriteSheet, puffy.quads[2])
+      love.graphics.draw(puffy.spriteSheet, puffy.quads[2], 600, puffy_y, puffy_angle + math.pi)
   end
+
+  -- Debug
+  love.graphics.origin()
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.print(table.concat({
+      'puffy_angle: '..puffy_angle,
+      'puffy_x: '..puffy_x,
+      'puffy_y: '..puffy_y,
+      'puffy_speed_x: '..puffy_speed_x,
+      'puffy_speed_y: '..puffy_speed_y,
+      'mouse_x: '..mouse_x,
+      'mouse_y: '..mouse_y,
+      'dx: '..dx,
+      'dy: '..dy,
+  }, '\n'))
 end
 
 function love.resize(_,h)
