@@ -2,6 +2,17 @@
 #include <raylib.h>
 #include <stdio.h>
 
+#define ENEMY_COUNT 8
+#define BUBBLE_COUNT 8
+
+enum ENEMY { FISH, FISH_BIG, FISH_DART, MINE, MINE_BIG, MINE_SMALL };
+
+typedef struct {
+  enum ENEMY type;
+  float x, y;
+  float orientation;
+} enemy_t;
+
 typedef struct {
   float x, y;
   float orientation;
@@ -19,9 +30,18 @@ int main() {
   SetTextureWrap(midground, TEXTURE_WRAP_REPEAT);
   Texture2D puffy = LoadTexture("assets/puffy.png");
   Texture2D bubble = LoadTexture("assets/FX/explosion.png");
+  Texture2D fish_dart = LoadTexture("assets/enemies/fish-dart.png");
 
-  bubble_t bubbles[8] = {0};
+  bubble_t bubbles[BUBBLE_COUNT] = {0};
   size_t bubble_index = 0;
+
+  enemy_t enemies[ENEMY_COUNT] = {0};
+  size_t enemy_index = 0;
+  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+    enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
+                           .y = GetRandomValue(0, screenHeight),
+                           .orientation = GetRandomValue(0, 2 * PI)};
+  }
 
   int x = 0;
   bool is_puffy_blow = false;
@@ -37,9 +57,26 @@ int main() {
           (bubble_t){.x = 350 - 25, .y = 200 - 50, .orientation = angle};
     }
 
-    for (size_t i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
       bubbles[i].x += cosf(bubbles[i].orientation);
       bubbles[i].y += sinf(bubbles[i].orientation);
+    }
+
+    for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+      float speed = 50;
+
+      enemies[i].orientation += GetRandomValue(-1, 1) / 180.0 * PI;
+      float player_direction = atan2f(200 - enemies[i].y, 350 - enemies[i].x);
+
+      bool is_player_in_view =
+          fabs(fmod(player_direction - enemies[i].orientation, 2 * PI)) / PI * 180.0 <= 30.0;
+
+      if (is_player_in_view) {
+        enemies[i].orientation = atan2f(200 - enemies[i].y, 350 - enemies[i].x);
+        speed = 250;
+      }
+      enemies[i].x += cosf(enemies[i].orientation) * GetFrameTime() * speed;
+      enemies[i].y += sinf(enemies[i].orientation) * GetFrameTime() * speed;
     }
 
     BeginDrawing();
@@ -59,13 +96,20 @@ int main() {
             .x = is_puffy_blow ? 200 : 0, .y = 0, .width = 200, .height = 200},
         (Rectangle){.x = 350, .y = 200, .width = 100, .height = 100},
         (Vector2){50, 50}, angle / PI * 180.0, GRAY);
-    for (size_t i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
       DrawTexturePro(
-          bubble,
+          bubble, (Rectangle){.x = 0, .y = 0, .width = 60, .height = 82},
           (Rectangle){
-          .x = 0, .y = 0, .width = 60, .height = 82},
-          (Rectangle){.x = bubbles[i].x, .y = bubbles[i].y, .width = 60, .height = 82},
+              .x = bubbles[i].x, .y = bubbles[i].y, .width = 60, .height = 82},
           (Vector2){0}, 0, GRAY);
+    }
+
+    for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+      enemy_t *enemy = &enemies[i];
+      DrawTexturePro(
+          fish_dart, (Rectangle){.x = 0, .y = 0, .width = 39, .height = 20},
+          (Rectangle){.x = enemy->x, .y = enemy->y, .width = 39, .height = 20},
+          (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
     }
     EndDrawing();
     x++;
