@@ -10,7 +10,15 @@
 #define BUBBLE_COUNT 8
 #define AIR_BUBBLE_COUNT 16
 
-enum ENEMY { FISH, FISH_BIG, FISH_DART, MINE, MINE_BIG, MINE_SMALL };
+enum ENEMY {
+  ENEMY_FISH,
+  ENEMY_FISH_BIG,
+  ENEMY_FISH_DART,
+  ENEMY_TYPE_LEN,
+  ENEMY_MINE,
+  ENEMY_MINE_BIG,
+  ENEMY_MINE_SMALL,
+};
 
 typedef struct {
   enum ENEMY type;
@@ -34,6 +42,12 @@ typedef struct {
   int lives;
   int hits;
 } player_t;
+
+typedef struct {
+  Texture2D texture;
+  int width, height, frames, index;
+  float duration;
+} animation_t;
 
 static const int screenWidth = 800;
 static const int screenHeight = 450;
@@ -59,7 +73,8 @@ static player_t entity_player = {.x = 350.0,
                                  .hits = 0};
 
 static Texture2D texture_background, texture_midground, texture_puffy,
-    texture_bubble, texture_fish_dart, texture_air_bubble, texture_particle;
+    texture_bubble, texture_fish, texture_fish_big, texture_fish_dart,
+    texture_air_bubble, texture_particle;
 
 static Sound sound_ambient, sound_bubble, sound_hurt, sound_puffy_death,
     sound_fish_dying;
@@ -71,6 +86,8 @@ void InitTextures() {
   texture_midground = LoadTexture("assets/environment/midground.png");
   texture_puffy = LoadTexture("assets/puffy.png");
   texture_bubble = LoadTexture("assets/FX/explosion.png");
+  texture_fish = LoadTexture("assets/enemies/fish.png");
+  texture_fish_big = LoadTexture("assets/enemies/fish-big.png");
   texture_fish_dart = LoadTexture("assets/enemies/fish-dart.png");
   texture_air_bubble = LoadTexture("assets/FX/Power_template_1.png");
   texture_particle = LoadTexture("assets/FX/particles.png");
@@ -90,13 +107,23 @@ void InitSounds() {
   sound_fish_dying = LoadSound("assets/sounds/slime_04.ogg");
 }
 
-void InitEnemies() {
-  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
-    enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
-                           .y = GetRandomValue(0, screenHeight),
-                           .orientation = GetRandomValue(0, 2 * PI),
-                           .radius = 10,
-                           .onPlayer = false};
+void InitEnemy(enemy_t *enemy) {
+  enemy->type = GetRandomValue(ENEMY_FISH, ENEMY_TYPE_LEN - 1);
+  enemy->x = entity_player.x - GetScreenWidth() / 2 +
+             GetRandomValue(0, 1) * GetScreenWidth();
+  enemy->y = entity_player.y - GetScreenHeight() / 2 +
+             GetRandomValue(0, 1) * GetScreenHeight();
+  enemy->orientation = GetRandomValue(0, 2 * PI), enemy->onPlayer = false;
+  switch (enemy->type) {
+  case ENEMY_FISH:
+    enemy->radius = 10;
+    break;
+  case ENEMY_FISH_BIG:
+    enemy->radius = 20;
+    break;
+  case ENEMY_FISH_DART:
+    enemy->radius = 10;
+    break;
   }
 }
 
@@ -112,7 +139,9 @@ void Init() {
              "raylib [models] example - geometric shapes");
   InitTextures();
   InitAudioDevice();
-  InitEnemies();
+  for (size_t i = 0; i < ENEMY_COUNT; ++i) {
+    InitEnemy(&enemies[i]);
+  }
   InitCamera();
 
   InitSounds();
@@ -173,11 +202,7 @@ void UpdateBubble(bubble_t *bubble) {
             .y = enemies[i].y + GetRandomValue(-20, 20),
         };
       }
-      enemies[i] = (enemy_t){.x = GetRandomValue(0, screenWidth),
-                             .y = GetRandomValue(0, screenHeight),
-                             .orientation = GetRandomValue(0, 2 * PI),
-                             .radius = 10,
-                             .onPlayer = false};
+      InitEnemy(&enemies[i]);
       entity_player.hits += 1;
       PlaySound(sound_fish_dying);
     }
@@ -262,6 +287,35 @@ void Update() {
   camera.offset = (Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2};
 }
 
+void DrawEnemy(enemy_t *enemy) {
+  Texture2D texture;
+  int width, height;
+  switch (enemy->type) {
+  case ENEMY_FISH:
+    texture = texture_fish;
+    width = 32;
+    height = 32;
+    break;
+  case ENEMY_FISH_BIG:
+    texture = texture_fish_big;
+    width = 54;
+    height = 49;
+    break;
+  case ENEMY_FISH_DART:
+    texture = texture_fish_dart;
+    width = 39;
+    height = 20;
+    break;
+  }
+  DrawTexturePro(texture,
+                 (Rectangle){.x = 0, .y = 0, .width = width, .height = height},
+                 (Rectangle){.x = enemy->x,
+                             .y = enemy->y,
+                             .width = width * 2,
+                             .height = height * 2},
+                 (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
+}
+
 void Draw() {
   // BACKGROUND
   DrawTexturePro(
@@ -276,21 +330,24 @@ void Draw() {
   // MIDGROUND
   DrawTexturePro(
       texture_midground,
-      (Rectangle){.x = entity_player.x / 3, .y = 0, .width = 960, .height = 512},
+      (Rectangle){
+          .x = entity_player.x / 3, .y = 0, .width = 960, .height = 512},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
                   .height = GetScreenHeight()},
       (Vector2){0}, 0.f, GRAY);
   // PARTICLES
-  DrawTexturePro(
-      texture_particle,
-      (Rectangle){.x = entity_player.x / 5, .y = entity_player.y / 5, .width = GetScreenWidth() / 5, .height = GetScreenHeight() / 5},
-      (Rectangle){.x = 0,
-                  .y = 0,
-                  .width = GetScreenWidth(),
-                  .height = GetScreenHeight()},
-      (Vector2){0}, 0.f, GRAY);
+  DrawTexturePro(texture_particle,
+                 (Rectangle){.x = entity_player.x / 5,
+                             .y = entity_player.y / 5,
+                             .width = GetScreenWidth() / 5,
+                             .height = GetScreenHeight() / 5},
+                 (Rectangle){.x = 0,
+                             .y = 0,
+                             .width = GetScreenWidth(),
+                             .height = GetScreenHeight()},
+                 (Vector2){0}, 0.f, GRAY);
 
   // STATS
   DrawText(TextFormat("Leben: %i", entity_player.lives), GetScreenWidth() / 25,
@@ -329,13 +386,7 @@ void Draw() {
 
   // ENEMIES
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
-    enemy_t *enemy = &enemies[i];
-    DrawTexturePro(
-        texture_fish_dart,
-        (Rectangle){.x = 0, .y = 0, .width = 39, .height = 20},
-        (Rectangle){
-            .x = enemy->x, .y = enemy->y, .width = 39 * 2, .height = 20 * 2},
-        (Vector2){20, 10}, enemy->orientation / PI * 180.0, GRAY);
+    DrawEnemy(&enemies[i]);
   }
   // ENEMIES
   for (size_t i = 0; i < AIR_BUBBLE_COUNT; ++i) {
