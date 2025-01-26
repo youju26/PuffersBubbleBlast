@@ -15,7 +15,7 @@ jobs:
     env:
       PROJECT_NAME: ${{ github.event.repository.name }}
       PROJECT_BUILD_PATH: ${{ github.event.repository.name }}/src
-      PROJECT_RELEASE_PATH: ${{ github.event.repository.name }}/bin
+      PROJECT_RELEASE_PATH: bin
       PROJECT_CUSTOM_FLAGS: ""
       PROJECT_RESOURCES_PATH: src/resources
 
