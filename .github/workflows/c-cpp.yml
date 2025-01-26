@@ -33,8 +33,8 @@ jobs:
       run: |
         cd raylib/src
         gcc --version
-        make #PLATFORM=PLATFORM_DESKTOP
+        make PLATFORM=PLATFORM_DESKTOP
 
     - name: Build Product
       run: |
-        gcc main.c -o puffersbubbleblast_linux.out -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./lib/ -lraylib -lopengl32 -lgdi32 -lwinmm
+        gcc main.c -o puffersbubbleblast_linux.out -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm
