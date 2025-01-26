@@ -53,3 +53,49 @@ jobs:
       with:
         name: puffersbubbleblast_linux
         path: release
+
+  windows-build:
+    name: Build for Windows
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+        
+    - name: Checkout raylib repo
+      uses: actions/checkout@v4
+      with:
+        repository: raysan5/raylib
+        path: raylib
+    
+    - name: Setup Environment
+      run: |
+        choco install mingw -y
+        setx PATH "%PATH%;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
+        mkdir bin
+      shell: cmd
+        
+    - name: Build raylib Library
+      run: |
+        cd raylib/src
+        mingw32-make PLATFORM=PLATFORM_DESKTOP
+
+    - name: Build Product
+      run: |
+        gcc main.c -o puffersbubbleblast_windows.exe -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./raylib/src -lraylib -lopengl32 -lgdi32 -lwinmm
+
+    - name: Generate Artifacts
+      run: |
+        dir
+        mkdir release
+        copy puffersbubbleblast_windows.exe release
+        xcopy assets release\assets /E /I
+        copy README.md release
+        copy LICENSE release
+        dir release
+      shell: cmd
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: puffersbubbleblast_windows
+        path: release
