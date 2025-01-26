@@ -39,8 +39,17 @@ jobs:
       run: |
         gcc main.c -o puffersbubbleblast_linux.out -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
+    - name: Generate Artifacts
+      run: |
+        ls
+        cp -r assets bin
+        cp README.md bin
+        cp LICENSE bin
+        ls bin
+        tar -czvf puffersbubbleblast_linux.tar.gz bin 
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: puffersbubbleblast_linux.out
-        path: puffersbubbleblast_linux.out
+        name: puffersbubbleblast_linux.tar.gz
+        path: puffersbubbleblast_linux.tar.gz
