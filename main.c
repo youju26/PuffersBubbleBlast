@@ -152,7 +152,7 @@ void UpdatePlayer(player_t *player) {
   is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
   int mouse_x = GetMouseX();
   int mouse_y = GetMouseY();
-  float speed = 50000;
+  float speed = 800;
 
   entity_player.orientation =
       atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
@@ -161,9 +161,9 @@ void UpdatePlayer(player_t *player) {
 
     // PLAYER IMPULSE IN OPPOSITE DIRECTION
     entity_player.speed_x +=
-        cosf(entity_player.orientation + PI) * speed * GetFrameTime();
+        cosf(entity_player.orientation + PI) * speed;
     entity_player.speed_y +=
-        sinf(entity_player.orientation + PI) * speed * GetFrameTime();
+        sinf(entity_player.orientation + PI) * speed;
 
     // SPAWN BUBBLE
     bubble_index = (bubble_index + 1) % 8;
@@ -173,8 +173,8 @@ void UpdatePlayer(player_t *player) {
         .orientation = entity_player.orientation,
         .radius = 30};
   }
-  entity_player.speed_x *= 0.998;
-  entity_player.speed_y *= 0.998;
+  entity_player.speed_x *= 0.997;
+  entity_player.speed_y *= 0.997;
 
   // UPDATE PLAYER POSITION
   entity_player.x += entity_player.speed_x * GetFrameTime();
