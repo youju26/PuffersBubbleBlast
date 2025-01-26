@@ -152,7 +152,7 @@ void UpdatePlayer(player_t *player) {
   is_puffy_blow = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(0);
   int mouse_x = GetMouseX();
   int mouse_y = GetMouseY();
-  float speed = 60000;
+  float speed = 300;
 
   entity_player.orientation =
       atan2f(mouse_y - camera.offset.y, mouse_x - camera.offset.x);
@@ -175,12 +175,12 @@ void UpdatePlayer(player_t *player) {
   }
 
   // DEACCELERATION
-  entity_player.speed_x *= powf(0.7, GetFrameTime());
-  entity_player.speed_y *= powf(0.7, GetFrameTime());
+  entity_player.speed_x *= powf(0.4, GetFrameTime());
+  entity_player.speed_y *= powf(0.4, GetFrameTime());
 
   // UPDATE PLAYER POSITION
-  entity_player.x += entity_player.speed_x * GetFrameTime();
-  entity_player.y += entity_player.speed_y * GetFrameTime();
+  entity_player.x += entity_player.speed_x;
+  entity_player.y += entity_player.speed_y;
 }
 
 void UpdateBubble(bubble_t *bubble) {
