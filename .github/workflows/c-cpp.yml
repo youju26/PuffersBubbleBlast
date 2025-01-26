@@ -11,14 +11,37 @@ jobs:
   linux-build:
     name: linux-build
     runs-on: ubuntu-latest
+    
+    env:
+      PROJECT_NAME: ${{ github.event.repository.name }}
+      PROJECT_BUILD_PATH: ${{ github.event.repository.name }}/src
+      PROJECT_CUSTOM_FLAGS: ""
+      PROJECT_RESOURCES_PATH: src/resources
 
     steps:
     - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+        
+    - name: Checkout raylib repo
+      uses: actions/checkout@v4
+      with:
+        repository: raysan5/raylib
+        path: raylib
+    
+    - name: Setup Environment
+      run: | 
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev
+        mkdir ${{ env.PROJECT_RELEASE_PATH }}
+        ls
+      shell: bash
+        
+    - name: Build raylib Library
+      run: |
+        cd raylib/src
+        gcc --version
+        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=STATIC RAYLIB_PROJECT_RELEASE_PATH=. -B
+
+    - name: Build Product
+      run: |
+        cd ${{ env.PROJECT_NAME }}
+        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE PROJECT_CUSTOM_FLAGS=${{ env.PROJECT_CUSTOM_FLAGS }} PROJECT_BUILD_PATH=bin
