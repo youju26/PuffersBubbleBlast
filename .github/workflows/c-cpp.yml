@@ -24,7 +24,7 @@ jobs:
     - name: Setup Environment
       run: | 
         sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev
+        sudo apt-get install -y --no-install-recommends libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake make gcc
         mkdir bin
         ls
       shell: bash
@@ -37,4 +37,4 @@ jobs:
 
     - name: Build Product
       run: |
-        gcc main.c -o puffersbubbleblast_linux.out -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm
+        gcc main.c -o puffersbubbleblast_linux.out -O1 -Wall -std=c99 -Wno-missing-braces -I ./raylib/src -L ./raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
