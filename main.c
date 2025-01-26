@@ -132,8 +132,8 @@ void UpdatePlayer(player_t *player) {
 
     // SPAWN BUBBLE
     bubble_index = (bubble_index + 1) % 8;
-    bubbles[bubble_index] = (bubble_t){.x = entity_player.x - 25,
-                                       .y = entity_player.y - 50,
+    bubbles[bubble_index] = (bubble_t){.x = entity_player.x - 25 + cosf(entity_player.orientation) * 40,
+                                       .y = entity_player.y - 50 + sinf(entity_player.orientation) * 40,
                                        .orientation = entity_player.orientation,
                                        .radius = 30};
   }
@@ -147,8 +147,8 @@ void UpdatePlayer(player_t *player) {
 
 void UpdateBubble(bubble_t *bubble) {
   // UPDATE BUBBLE POSITION IN DIRECTION
-  bubble->x += cosf(bubble->orientation);
-  bubble->y += sinf(bubble->orientation);
+  bubble->x += cosf(bubble->orientation) * GetFrameTime() * 200;
+  bubble->y += sinf(bubble->orientation) * GetFrameTime() * 200;
 
   Vector2 bubble_vec = {bubble->x + bubble->radius, bubble->y + bubble->radius};
 
@@ -188,7 +188,7 @@ void UpdateEnemy(enemy_t *enemy) {
 
   bool collision = CheckCollisionCircles(enemy_vec, enemy->radius, player_vec,
                                          entity_player.radius);
-  if (collision && (collision != enemy->onPlayer)) {
+  if (!pause && collision && (collision != enemy->onPlayer)) {
     if (entity_player.lives == 0) {
       pause = true;
 
