@@ -15,6 +15,7 @@ jobs:
     env:
       PROJECT_NAME: ${{ github.event.repository.name }}
       PROJECT_BUILD_PATH: ${{ github.event.repository.name }}/src
+      PROJECT_RELEASE_PATH: ${{ github.event.repository.name }}/bin
       PROJECT_CUSTOM_FLAGS: ""
       PROJECT_RESOURCES_PATH: src/resources
 
@@ -39,7 +40,7 @@ jobs:
       run: |
         cd raylib/src
         gcc --version
-        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=STATIC RAYLIB_PROJECT_RELEASE_PATH=. -B
+        make #PLATFORM=PLATFORM_DESKTOP
 
     - name: Build Product
       run: |
