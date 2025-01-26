@@ -59,7 +59,7 @@ static player_t entity_player = {.x = 350.0,
                                  .hits = 0};
 
 static Texture2D texture_background, texture_midground, texture_puffy,
-    texture_bubble, texture_fish_dart, texture_air_bubble;
+    texture_bubble, texture_fish_dart, texture_air_bubble, texture_particle;
 
 static Sound sound_ambient, sound_bubble, sound_hurt, sound_puffy_death,
     sound_fish_dying;
@@ -73,9 +73,11 @@ void InitTextures() {
   texture_bubble = LoadTexture("assets/FX/explosion.png");
   texture_fish_dart = LoadTexture("assets/enemies/fish-dart.png");
   texture_air_bubble = LoadTexture("assets/FX/Power_template_1.png");
+  texture_particle = LoadTexture("assets/FX/particles.png");
 
   SetTextureWrap(texture_background, TEXTURE_WRAP_REPEAT);
   SetTextureWrap(texture_midground, TEXTURE_WRAP_REPEAT);
+  SetTextureWrap(texture_particle, TEXTURE_WRAP_REPEAT);
 }
 
 void InitSounds() {
@@ -265,7 +267,7 @@ void Draw() {
   DrawTexturePro(
       texture_background,
       (Rectangle){
-          .x = entity_player.x / 6, .y = 0, .width = 288, .height = 256},
+          .x = entity_player.x / 20, .y = 0, .width = 288, .height = 256},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
@@ -274,7 +276,16 @@ void Draw() {
   // MIDGROUND
   DrawTexturePro(
       texture_midground,
-      (Rectangle){.x = entity_player.x, .y = 0, .width = 960, .height = 512},
+      (Rectangle){.x = entity_player.x / 3, .y = 0, .width = 960, .height = 512},
+      (Rectangle){.x = 0,
+                  .y = 0,
+                  .width = GetScreenWidth(),
+                  .height = GetScreenHeight()},
+      (Vector2){0}, 0.f, GRAY);
+  // PARTICLES
+  DrawTexturePro(
+      texture_particle,
+      (Rectangle){.x = entity_player.x / 5, .y = entity_player.y / 5, .width = GetScreenWidth() / 5, .height = GetScreenHeight() / 5},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
