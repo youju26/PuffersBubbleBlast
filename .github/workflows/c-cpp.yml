@@ -16,7 +16,6 @@ jobs:
       PROJECT_NAME: ${{ github.event.repository.name }}
       PROJECT_BUILD_PATH: ${{ github.event.repository.name }}/src
       PROJECT_RELEASE_PATH: bin
-      PROJECT_CUSTOM_FLAGS: ""
       PROJECT_RESOURCES_PATH: src/resources
 
     steps:
@@ -44,5 +43,4 @@ jobs:
 
     - name: Build Product
       run: |
-        cd ${{ env.PROJECT_NAME }}
-        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE PROJECT_CUSTOM_FLAGS=${{ env.PROJECT_CUSTOM_FLAGS }} PROJECT_BUILD_PATH=bin
+        make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=bin
