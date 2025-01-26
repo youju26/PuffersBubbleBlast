@@ -2,6 +2,10 @@
 #include <raylib.h>
 #include <stdio.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
 #define ENEMY_COUNT 8
 #define BUBBLE_COUNT 8
 #define AIR_BUBBLE_COUNT 16
@@ -132,10 +136,11 @@ void UpdatePlayer(player_t *player) {
 
     // SPAWN BUBBLE
     bubble_index = (bubble_index + 1) % 8;
-    bubbles[bubble_index] = (bubble_t){.x = entity_player.x - 25 + cosf(entity_player.orientation) * 40,
-                                       .y = entity_player.y - 50 + sinf(entity_player.orientation) * 40,
-                                       .orientation = entity_player.orientation,
-                                       .radius = 30};
+    bubbles[bubble_index] = (bubble_t){
+        .x = entity_player.x - 25 + cosf(entity_player.orientation) * 40,
+        .y = entity_player.y - 50 + sinf(entity_player.orientation) * 40,
+        .orientation = entity_player.orientation,
+        .radius = 30};
   }
   entity_player.speed_x *= 0.998;
   entity_player.speed_y *= 0.998;
@@ -269,8 +274,7 @@ void Draw() {
   // MIDGROUND
   DrawTexturePro(
       texture_midground,
-      (Rectangle){
-          .x = entity_player.x, .y = 0, .width = 960, .height = 512},
+      (Rectangle){.x = entity_player.x, .y = 0, .width = 960, .height = 512},
       (Rectangle){.x = 0,
                   .y = 0,
                   .width = GetScreenWidth(),
@@ -331,17 +335,27 @@ void Draw() {
   EndMode2D();
 }
 
+void UpdateDrawFrame(void) {
+  Update();
+
+  BeginDrawing();
+  Draw();
+  EndDrawing();
+}
+
 int main() {
   Init();
 
+#if defined(PLATFORM_WEB)
+  emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
+#else
   while (!WindowShouldClose()) {
-    Update();
-
-    BeginDrawing();
-    Draw();
-    EndDrawing();
+    UpdateDrawFrame();
   }
+#endif
 
   UnloadTexture(texture_background);
   CloseWindow();
+
+  return 0;
 }
