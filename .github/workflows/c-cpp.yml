@@ -55,7 +55,7 @@ jobs:
         path: release
 
   windows-build:
-    name: Build for Windows
+    name: windows-build
     runs-on: windows-latest
 
     steps:
@@ -98,4 +98,67 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: puffersbubbleblast_windows
+        path: release
+
+  HTML5:
+    name: html5-build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+        
+    - name: Checkout raylib repo
+      uses: actions/checkout@v4
+      with:
+        repository: raysan5/raylib
+        path: raylib
+
+    - name: Checkout emsdk repo
+      uses: actions/checkout@v4
+      with:
+        repository: emscripten-core/emsdk
+        path: emsdk
+    
+    - name: Setup Environment
+      run: | 
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake make gcc python3
+        mkdir release
+        ls
+      shell: bash
+        
+    - name: Install emsdk
+      run: |
+        cd emsdk
+        ./emsdk install latest
+        ./emsdk activate latest
+        source ./emsdk_env.sh
+
+    - name: Build raylib library
+      run: |
+        cd raylib/src
+        emcc -c rcore.c -Os -Wall -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+        emcc -c rshapes.c -Os -Wall -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+        emcc -c rtextures.c -Os -Wall -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+        emcc -c rtext.c -Os -Wall -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+        emcc -c rmodels.c -Os -Wall -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+        emcc -c utils.c -Os -Wall -DPLATFORM_WEB
+        emcc -c raudio.c -Os -Wall -DPLATFORM_WEB
+        emar rcs libraylib.a rcore.o rshapes.o rtextures.o rtext.o rmodels.o utils.o raudio.o
+
+    - name: Build Product
+      run: |
+        emcc -o game.html main.c -Os -Wall ./raylib/src/libraylib.a  -I. -I./raylib/src -L. -L./raylib/src/libraylib.a -s USE_GLFW=3 -s TOTAL_MEMORY=67108864 -s -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 --shell-file ./raylib/src/minshell.html -DPLATFORM_WEB --preload-file assets
+
+    - name: Generate Artifacts
+      run: |
+        ls
+        cp game.* release
+        cp LICENSE release
+        ls release
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: puffersbubbleblast_web
         path: release
