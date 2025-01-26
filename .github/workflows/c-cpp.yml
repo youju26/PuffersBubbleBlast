@@ -25,7 +25,7 @@ jobs:
       run: | 
         sudo apt-get update -qq
         sudo apt-get install -y --no-install-recommends libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake make gcc
-        mkdir bin
+        mkdir release
         ls
       shell: bash
         
@@ -42,14 +42,15 @@ jobs:
     - name: Generate Artifacts
       run: |
         ls
-        cp -r assets bin
-        cp README.md bin
-        cp LICENSE bin
-        ls bin
-        tar -czvf puffersbubbleblast_linux.tar.gz bin 
+        cp puffersbubbleblast_linux.out release
+        cp -r assets release
+        cp README.md release
+        cp LICENSE release
+        ls release
+        zip -r puffersbubbleblast_linux.zip release 
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: puffersbubbleblast_linux.tar.gz
-        path: puffersbubbleblast_linux.tar.gz
+        name: puffersbubbleblast_linux.zip
+        path: puffersbubbleblast_linux.zip
