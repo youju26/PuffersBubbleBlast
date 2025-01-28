@@ -6,7 +6,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#define ENEMY_COUNT 8
+#define ENEMY_COUNT 4
 #define MINES_COUNT 8
 #define BUBBLE_COUNT 8
 #define AIR_BUBBLE_COUNT 16
@@ -247,6 +247,14 @@ void UpdateBubble(bubble_t *bubble) {
 void UpdateAirBubble(Vector2 *bubble) { bubble->y -= GetFrameTime() * 50; }
 
 void UpdateEnemy(enemy_t *enemy) {
+  if (!CheckCollisionPointRec(
+          (Vector2){.x = enemy->x, .y = enemy->y},
+          (Rectangle){.x = entity_player.x - GetScreenWidth(),
+                      .y = entity_player.y - GetScreenHeight(),
+                      .width = 2 * GetScreenWidth(),
+                      .height = 2 * GetScreenHeight()})) {
+    InitEnemy(enemy);
+  }
   Vector2 player_vec = {.x = entity_player.x + entity_player.radius,
                         .y = entity_player.y + entity_player.radius};
 
