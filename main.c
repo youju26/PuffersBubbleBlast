@@ -7,6 +7,7 @@
 #endif
 
 #define ENEMY_COUNT 8
+#define MINES_COUNT 8
 #define BUBBLE_COUNT 8
 #define AIR_BUBBLE_COUNT 16
 
@@ -59,6 +60,7 @@ static bubble_t bubbles[BUBBLE_COUNT] = {0};
 static size_t bubble_index = 0;
 
 static enemy_t enemies[ENEMY_COUNT] = {0};
+static Vector2 mines[MINES_COUNT] = {0};
 
 static Vector2 air_bubbles[AIR_BUBBLE_COUNT] = {0};
 static size_t air_bubble_index = 0;
@@ -74,7 +76,7 @@ static player_t entity_player = {.x = 350.0,
 
 static Texture2D texture_background, texture_midground, texture_puffy,
     texture_bubble, texture_fish, texture_fish_big, texture_fish_dart,
-    texture_air_bubble, texture_particle;
+    texture_mine, texture_air_bubble, texture_particle;
 
 static Sound sound_ambient, sound_bubble, sound_hurt, sound_puffy_death,
     sound_fish_dying;
@@ -89,6 +91,7 @@ void InitTextures() {
   texture_fish = LoadTexture("assets/enemies/fish.png");
   texture_fish_big = LoadTexture("assets/enemies/fish-big.png");
   texture_fish_dart = LoadTexture("assets/enemies/fish-dart.png");
+  texture_mine = LoadTexture("assets/enemies/mine.png");
   texture_air_bubble = LoadTexture("assets/FX/Power_template_1.png");
   texture_particle = LoadTexture("assets/FX/particles.png");
 
@@ -127,6 +130,13 @@ void InitEnemy(enemy_t *enemy) {
   }
 }
 
+void InitMine(Vector2 *mine) {
+  mine->x = entity_player.x - GetScreenWidth() / 2 +
+            GetRandomValue(0, 1) * GetScreenWidth();
+  mine->y = entity_player.y - GetScreenHeight() / 2 +
+            GetRandomValue(0, 1) * GetScreenHeight();
+}
+
 void InitCamera() {
   camera.target = (Vector2){entity_player.x + 20.0f, entity_player.y + 20.0f};
   camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
@@ -142,10 +152,33 @@ void Init() {
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     InitEnemy(&enemies[i]);
   }
+  for (size_t i = 0; i < MINES_COUNT; ++i) {
+    InitMine(&mines[i]);
+  }
   InitCamera();
 
   InitSounds();
   PlaySound(sound_ambient);
+}
+
+void PlayerTakesDamage() {
+  if (entity_player.lives == 0) {
+    pause = true;
+
+    PlaySound(sound_puffy_death);
+
+    for (size_t i = 0; i < AIR_BUBBLE_COUNT; i++) {
+      air_bubble_index = (air_bubble_index + 1) % AIR_BUBBLE_COUNT;
+      air_bubbles[air_bubble_index] = (Vector2){
+          .x = entity_player.x + GetRandomValue(-20, 20),
+          .y = entity_player.y + GetRandomValue(-20, 20),
+      };
+    }
+  } else {
+    entity_player.lives -= 1;
+
+    PlaySound(sound_hurt);
+  }
 }
 
 void UpdatePlayer(player_t *player) {
@@ -222,28 +255,10 @@ void UpdateEnemy(enemy_t *enemy) {
 
   bool collision = CheckCollisionCircles(enemy_vec, enemy->radius, player_vec,
                                          entity_player.radius);
-  if (!pause && collision && (collision != enemy->onPlayer)) {
-    if (entity_player.lives == 0) {
-      pause = true;
-
-      PlaySound(sound_puffy_death);
-
-      for (size_t ii = 0; ii < 4; ii++) {
-        air_bubble_index = (air_bubble_index + 1) % AIR_BUBBLE_COUNT;
-        air_bubbles[air_bubble_index] = (Vector2){
-            .x = entity_player.x + GetRandomValue(-20, 20),
-            .y = entity_player.y + GetRandomValue(-20, 20),
-        };
-      }
-    } else {
-      entity_player.lives -= 1;
-      enemy->onPlayer = true;
-
-      PlaySound(sound_hurt);
-    }
-  } else {
-    enemy->onPlayer = collision;
+  if (collision && (collision != enemy->onPlayer)) {
+    PlayerTakesDamage();
   }
+  enemy->onPlayer = collision;
 
   float speed = 50;
 
@@ -266,6 +281,24 @@ void UpdateEnemy(enemy_t *enemy) {
   enemy->y += sinf(enemy->orientation) * GetFrameTime() * speed;
 }
 
+void UpdateMine(Vector2 *mine) {
+  int mine_radius = 22;
+  if (!CheckCollisionPointRec(
+          *mine, (Rectangle){.x = entity_player.x - GetScreenWidth(),
+                             .y = entity_player.y - GetScreenHeight(),
+                             .width = 2 * GetScreenWidth(),
+                             .height = 2 * GetScreenHeight()})) {
+    InitMine(mine);
+  }
+  if (CheckCollisionCircles(
+          (Vector2){entity_player.x, entity_player.y}, entity_player.radius,
+          (Vector2){mine->x + mine_radius, mine->y + mine_radius},
+          mine_radius)) {
+    PlayerTakesDamage();
+    InitMine(mine);
+  }
+}
+
 void Update() {
 
   for (size_t i = 0; i < BUBBLE_COUNT; ++i) {
@@ -274,6 +307,10 @@ void Update() {
 
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     UpdateEnemy(&enemies[i]);
+  }
+
+  for (size_t i = 0; i < MINES_COUNT; ++i) {
+    UpdateMine(&mines[i]);
   }
 
   for (size_t i = 0; i < AIR_BUBBLE_COUNT; ++i) {
@@ -390,7 +427,14 @@ void Draw() {
   for (size_t i = 0; i < ENEMY_COUNT; ++i) {
     DrawEnemy(&enemies[i]);
   }
+
   // ENEMIES
+  for (size_t i = 0; i < MINES_COUNT; ++i) {
+    Vector2 *mine = &mines[i];
+    DrawTextureEx(texture_mine, *mine, 0, 2, GRAY);
+  }
+
+  // AIR BUBBLES
   for (size_t i = 0; i < AIR_BUBBLE_COUNT; ++i) {
     Vector2 *bubble = &air_bubbles[i];
     DrawTextureEx(texture_air_bubble, *bubble, 0, .5, GRAY);
